@@ -44,7 +44,7 @@ namespace VsDeploymentAutomation
             string stderr_str = gitProcess.StandardError.ReadToEnd();  // pick up STDERR
             string stdout_str = gitProcess.StandardOutput.ReadToEnd(); // pick up STDOUT
 
-            textBox1.Text = stdout_str + stderr_str;
+            //textBox1.Text = stdout_str + stderr_str;
 
             gitProcess.WaitForExit();
             gitProcess.Close();
@@ -71,7 +71,7 @@ namespace VsDeploymentAutomation
             string stderr_str = gitProcess.StandardError.ReadToEnd();  // pick up STDERR
             string stdout_str = gitProcess.StandardOutput.ReadToEnd(); // pick up STDOUT
 
-            textBox1.Text = stdout_str + stderr_str;
+            //textBox1.Text = stdout_str + stderr_str;
 
             gitProcess.WaitForExit();
             gitProcess.Close();
@@ -82,23 +82,23 @@ namespace VsDeploymentAutomation
         private bool Publish()
         {
             ProcessStartInfo gitInfo = new ProcessStartInfo();
-            gitInfo.CreateNoWindow = false;
+            gitInfo.CreateNoWindow = true;
             gitInfo.RedirectStandardError = true;
             gitInfo.RedirectStandardOutput = true;
             gitInfo.UseShellExecute = false;
-            gitInfo.FileName = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe";
+            gitInfo.FileName = @"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe";
 
             Process gitProcess = new Process();
-            gitInfo.Arguments = @"C:\git\private\armadareports\ArmadaReports\ArmadaReports.Web\ArmadaReports.Web.csproj /p:DeployOnBuild=true /p:PublishProfile=armadareports /p:VisualStudioVersion=10.0 /P:PublishProfileRootFolder=C:\git\private\armadareports\ArmadaReports\ArmadaReports.Web\Properties\PublishProfiles\armadareports.pubxml; // such as "fetch orign"
+            gitInfo.Arguments = @"C:\git\private\armadareports\ArmadaReports\ArmadaReports.Web\ArmadaReports.Web.csproj /p:DeployOnBuild=true /p:PublishProfile=armadareports"; // such as "fetch orign"
             //gitInfo.WorkingDirectory = @"C:\git\public\ndate";
 
             gitProcess.StartInfo = gitInfo;
             gitProcess.Start();
 
-            string stderr_str = gitProcess.StandardError.ReadToEnd();  // pick up STDERR
+            //string stderr_str = gitProcess.StandardError.ReadToEnd();  // pick up STDERR
             string stdout_str = gitProcess.StandardOutput.ReadToEnd(); // pick up STDOUT
 
-            textBox1.Text = stdout_str + stderr_str;
+            //textBox1.Text = stdout_str;// + stderr_str;
 
             gitProcess.WaitForExit();
             gitProcess.Close();
