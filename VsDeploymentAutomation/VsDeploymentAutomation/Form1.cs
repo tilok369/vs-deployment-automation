@@ -19,6 +19,7 @@ namespace VsDeploymentAutomation
     {
         private IGitCommandManager _gitCommandManager;
         private IMsBuildManager _msBuildManager;
+        private List<CheckBox> _countryCheckBoxes;
 
         public MainForm()
         {
@@ -36,6 +37,9 @@ namespace VsDeploymentAutomation
             projectLabel.Text = app.AppSettings["project"];
             gitBranchLabel.Text = app.AppSettings["git:branch"];
             environmentLabel.Text = app.AppSettings["environment"];
+
+            _countryCheckBoxes = new List<CheckBox> { inCheckBox, phCheckBox, ghCheckBox, ngCheckBox, tzCheckBox,
+                ugCheckBox, rwCheckBox, zmCheckBox, slCheckBox, lkCheckBox, mmCheckBox, keCheckBox, pkCheckBox };
         }
 
         #endregion
@@ -46,6 +50,12 @@ namespace VsDeploymentAutomation
         {
             var thread = new Thread(new ThreadStart(Run));
             thread.Start();
+        }
+
+        private void logTextBox_TextChanged(object sender, EventArgs e)
+        {
+            logTextBox.SelectionStart = logTextBox.Text.Length;
+            logTextBox.ScrollToCaret();
         }
 
         #endregion
@@ -76,6 +86,26 @@ namespace VsDeploymentAutomation
                 Log("Project build completed");
                 LogEnd();
             }
+
+            foreach (var checkBox in _countryCheckBoxes)
+            {
+                if (checkBox.Checked)
+                    PublishProcess(checkBox.Name.Replace("CheckBox", "").ToUpper());
+            }
+
+            Log("Process Completed");
+        }
+
+        private void PublishProcess(string countryCode)
+        {
+            Log("Project publish is in progress for " + countryCode + "..");
+            if (!Publish(app.AppSettings["msbuild:" + countryCode + ":publishprofile"]))
+            {
+                Log("Publish project exited with error, process terminated for " + countryCode);
+                return;
+            }
+            Log("Project publish completed for " + countryCode);
+            LogEnd();
         }
 
         private bool Pull()
@@ -96,11 +126,11 @@ namespace VsDeploymentAutomation
             return result;
         }
 
-        private bool Publish()
+        private bool Publish(string publishProfile)
         {
             var output = string.Empty;
             var error = string.Empty;
-            var result = _msBuildManager.Publish(@"" + app.AppSettings["msbuild:projectpath"] + @" /p:DeployOnBuild=true /p:PublishProfile=" + app.AppSettings["msbuild:publishprofile"],
+            var result = _msBuildManager.Publish(@"" + app.AppSettings["msbuild:projectpath"] + @" /p:DeployOnBuild=true /p:PublishProfile=" + publishProfile,
                 out output, out error);
             Log(result ? output : error);
             return result;
@@ -113,7 +143,7 @@ namespace VsDeploymentAutomation
 
         private void LogEnd()
         {
-            logTextBox.Text += Environment.NewLine + "------------------------------------------------------" 
+            logTextBox.Text += Environment.NewLine + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" 
                 + Environment.NewLine;
         }
 
