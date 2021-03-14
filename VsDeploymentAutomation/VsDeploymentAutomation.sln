@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.30413.136
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VsDeploymentAutomation", "VsDeploymentAutomation\VsDeploymentAutomation.csproj", "{C48CD5F2-3944-4678-909A-43C910E8F3E3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VsDeploymentAutomation.Library", "VsDeploymentAutomation.Library\VsDeploymentAutomation.Library.csproj", "{3B6AAFE9-0345-41F0-A069-0AA0AB6714AD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{C48CD5F2-3944-4678-909A-43C910E8F3E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C48CD5F2-3944-4678-909A-43C910E8F3E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C48CD5F2-3944-4678-909A-43C910E8F3E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B6AAFE9-0345-41F0-A069-0AA0AB6714AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B6AAFE9-0345-41F0-A069-0AA0AB6714AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B6AAFE9-0345-41F0-A069-0AA0AB6714AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B6AAFE9-0345-41F0-A069-0AA0AB6714AD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
