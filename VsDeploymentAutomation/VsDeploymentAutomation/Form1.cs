@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using VsDeploymentAutomation.Library.Interfaces;
 using VsDeploymentAutomation.Library.Manager;
 using System.Threading;
+using System.IO;
 
 namespace VsDeploymentAutomation
 {
@@ -20,6 +21,9 @@ namespace VsDeploymentAutomation
         private IGitCommandManager _gitCommandManager;
         private IMsBuildManager _msBuildManager;
         private List<CheckBox> _countryCheckBoxes;
+        private int _step = 0;
+        private string _root;
+        private string _log;
 
         public MainForm()
         {
@@ -40,6 +44,9 @@ namespace VsDeploymentAutomation
 
             _countryCheckBoxes = new List<CheckBox> { inCheckBox, phCheckBox, ghCheckBox, ngCheckBox, tzCheckBox,
                 ugCheckBox, rwCheckBox, zmCheckBox, slCheckBox, lkCheckBox, mmCheckBox, keCheckBox, pkCheckBox };
+
+            _root = Application.StartupPath;
+            _log = _root + "\\log_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".log";
         }
 
         #endregion
@@ -48,6 +55,10 @@ namespace VsDeploymentAutomation
 
         private void runButton_Click(object sender, EventArgs e)
         {
+            progressBar.Value = 0;
+            progressBar.Visible = true;
+            _step = CalculateProgressBarProgressStep();
+            progressBar.Value += _step;
             var thread = new Thread(new ThreadStart(Run));
             thread.Start();
         }
@@ -56,6 +67,11 @@ namespace VsDeploymentAutomation
         {
             logTextBox.SelectionStart = logTextBox.Text.Length;
             logTextBox.ScrollToCaret();
+        }
+
+        private void resetButton_Click(object sender, EventArgs e)
+        {
+            Reset();
         }
 
         #endregion
@@ -67,9 +83,10 @@ namespace VsDeploymentAutomation
             if (gitPullCheckBox.Checked)
             {
                 Log("Git pull is in progress..");
-                if (!Pull()) 
+                if (!Pull())
                 {
                     Log("Git pull exited with error, process terminated");
+                    progressBar.Visible = false;
                     return;
                 }
                 Log("Git pull completed");
@@ -81,6 +98,7 @@ namespace VsDeploymentAutomation
                 if (!Build())
                 {
                     Log("Build project exited with error, process terminated");
+                    progressBar.Visible = false;
                     return;
                 }
                 Log("Project build completed");
@@ -90,10 +108,19 @@ namespace VsDeploymentAutomation
             foreach (var checkBox in _countryCheckBoxes)
             {
                 if (checkBox.Checked)
+                {
+                    if (!replaceConfigCheckBox.Checked)
+                        CopyWebConfig(app.AppSettings["msbuild:" + checkBox.Name.Replace("CheckBox", "").ToUpper() + ":publishpath"] + "\\Web.config",
+                            _root + "\\Web.config");
                     PublishProcess(checkBox.Name.Replace("CheckBox", "").ToUpper());
+                    if (!replaceConfigCheckBox.Checked)
+                        CopyWebConfig(_root + "\\Web.config",
+                            app.AppSettings["msbuild:" + checkBox.Name.Replace("CheckBox", "").ToUpper() + ":publishpath"] + "\\Web.config");
+                }
             }
 
             Log("Process Completed");
+            progressBar.Value = 100;
         }
 
         private void PublishProcess(string countryCode)
@@ -136,15 +163,47 @@ namespace VsDeploymentAutomation
             return result;
         }
 
+        private void Reset()
+        {
+            progressBar.Visible = false;
+            progressBar.Value = 0;
+            gitPullCheckBox.Checked = buildCheckBox.Checked = logCheckBox.Checked = true;
+            replaceConfigCheckBox.Checked = false;
+            logTextBox.Text = string.Empty;
+            _countryCheckBoxes.ForEach(c => { c.Checked = false; });
+        }
+
         private void Log(string message)
         {
             logTextBox.Text += Environment.NewLine + message;
+            if (logCheckBox.Checked) File.AppendAllText(_log, Environment.NewLine + message);
+            progressBar.Value = (progressBar.Value + _step) < 100 ? (progressBar.Value + _step) : 100;
         }
 
         private void LogEnd()
         {
             logTextBox.Text += Environment.NewLine + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" 
                 + Environment.NewLine;
+            if (logCheckBox.Checked) File.AppendAllText(_log, Environment.NewLine + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+                + Environment.NewLine);
+        }
+
+        private int CalculateProgressBarProgressStep()
+        {
+            var n = 0;
+            n += (gitPullCheckBox.Checked ? 1 : 0);
+            n += (buildCheckBox.Checked ? 1 : 0);
+
+            foreach(var checkBox in _countryCheckBoxes)
+                n += (checkBox.Checked ? 1 : 0);
+
+            return n;
+        }
+
+        private void CopyWebConfig(string source, string destination)
+        {
+            if(File.Exists(source))
+                File.Copy(source, destination, true);
         }
 
         #endregion
