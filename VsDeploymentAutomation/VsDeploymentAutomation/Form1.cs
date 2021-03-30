@@ -13,13 +13,16 @@ using VsDeploymentAutomation.Library.Interfaces;
 using VsDeploymentAutomation.Library.Manager;
 using System.Threading;
 using System.IO;
+using VsDeploymentAutomation.Models;
 
 namespace VsDeploymentAutomation
 {
     public partial class MainForm : Form
     {
         private IGitCommandManager _gitCommandManager;
+        private IGitCommandManager _gitCommandManagerAndroid;
         private IMsBuildManager _msBuildManager;
+        private IAndroidBuildManager _droidBuildManager;
         private List<CheckBox> _countryCheckBoxes;
         private int _step = 0;
         private string _root;
@@ -36,11 +39,27 @@ namespace VsDeploymentAutomation
         private void Init()
         {
             _gitCommandManager = new GitCommandManager(@"" + app.AppSettings["git:exepath"], @"" + app.AppSettings["git:workingdirectory"]);
+            _gitCommandManagerAndroid = new GitCommandManager(@"" + app.AppSettings["git:exepath"], @"" + app.AppSettings["git:workingdirectoryandroid"]);
             _msBuildManager = new MsBuildManager(@"" + app.AppSettings["msbuild:exepath"]);
+            _droidBuildManager = new AndroidBuildManager(@"cmd.exe", app.AppSettings["output:directoryandroid"]);
 
             projectLabel.Text = app.AppSettings["project"];
-            gitBranchLabel.Text = app.AppSettings["git:branch"];
-            environmentLabel.Text = app.AppSettings["environment"];
+            //gitBranchLabel.Text = app.AppSettings["git:branch"];
+            //environmentLabel.Text = app.AppSettings["environment"];
+            envComboBox.DataSource = new ComboItem[] {
+                new ComboItem{ Id = "Production", Value = "Prod" },
+                new ComboItem{ Id = "Development", Value = "dev" },
+                new ComboItem{ Id = "UAT", Value = "UAT" },
+                new ComboItem{ Id = "QA", Value = "qa" },
+                new ComboItem{ Id = "Debug", Value = "debug" }
+            };
+            gitComboBox.DataSource = new ComboItem[] {
+                new ComboItem{ Id = "Development", Value = "develop" },
+                new ComboItem{ Id = "QA", Value = "QA" },
+                new ComboItem{ Id = "Master", Value = "master" },
+                new ComboItem{ Id = "Build_Automation", Value = "Build_Automation"}
+
+            };
 
             _countryCheckBoxes = new List<CheckBox> { inCheckBox, phCheckBox, ghCheckBox, ngCheckBox, tzCheckBox,
                 ugCheckBox, rwCheckBox, zmCheckBox, slCheckBox, lkCheckBox, mmCheckBox, keCheckBox, pkCheckBox };
@@ -80,48 +99,91 @@ namespace VsDeploymentAutomation
 
         private void Run()
         {
-            if (gitPullCheckBox.Checked)
+            //app wise separation 
+            if (webCheckBox.Checked)
             {
-                Log("Git pull is in progress..");
-                if (!Pull())
+                if (gitPullCheckBox.Checked)
                 {
-                    Log("Git pull exited with error, process terminated");
-                    progressBar.Visible = false;
-                    return;
+                    Log("Git pull is in progress..");
+                    if (!Pull())
+                    {
+                        Log("Git pull exited with error, process terminated");
+                        // progressBar.Visible = false;
+                        return;
+                    }
+                    Log("Git pull completed");
+                    LogEnd();
                 }
-                Log("Git pull completed");
-                LogEnd();
-            }
-            if (buildCheckBox.Checked)
-            {
-                Log("Project build is in progress..");
-                if (!Build())
+                if (buildCheckBox.Checked)
                 {
-                    Log("Build project exited with error, process terminated");
-                    progressBar.Visible = false;
-                    return;
+                    Log("Project build is in progress..");
+                    if (!Build())
+                    {
+                        Log("Build project exited with error, process terminated");
+                        // progressBar.Visible = false;
+                        return;
+                    }
+                    Log("Project build completed");
+                    LogEnd();
                 }
-                Log("Project build completed");
-                LogEnd();
+
+                foreach (var checkBox in _countryCheckBoxes)
+                {
+                    if (checkBox.Checked)
+                    {
+                        if (!replaceConfigCheckBox.Checked)
+                            CopyWebConfig(app.AppSettings["msbuild:" + checkBox.Name.Replace("CheckBox", "").ToUpper() + ":publishpath"] + "\\Web.config",
+                                _root + "\\Web.config");
+                        PublishProcess(checkBox.Name.Replace("CheckBox", "").ToUpper());
+                        if (!replaceConfigCheckBox.Checked)
+                            CopyWebConfig(_root + "\\Web.config",
+                                app.AppSettings["msbuild:" + checkBox.Name.Replace("CheckBox", "").ToUpper() + ":publishpath"] + "\\Web.config");
+                    }
+                }
             }
 
-            foreach (var checkBox in _countryCheckBoxes)
+            if (tabCheckBox.Checked)
             {
-                if (checkBox.Checked)
+                if (gitPullCheckBox.Checked)
                 {
-                    if (!replaceConfigCheckBox.Checked)
-                        CopyWebConfig(app.AppSettings["msbuild:" + checkBox.Name.Replace("CheckBox", "").ToUpper() + ":publishpath"] + "\\Web.config",
-                            _root + "\\Web.config");
-                    PublishProcess(checkBox.Name.Replace("CheckBox", "").ToUpper());
-                    if (!replaceConfigCheckBox.Checked)
-                        CopyWebConfig(_root + "\\Web.config",
-                            app.AppSettings["msbuild:" + checkBox.Name.Replace("CheckBox", "").ToUpper() + ":publishpath"] + "\\Web.config");
+                    Log("Git pull is in progress..");
+                    if (!PullAndroid())
+                    {
+                        Log("Git pull exited with error, process terminated");
+                        // progressBar.Visible = false;
+                        return;
+                    }
+                    Log("Git pull completed");
+                    LogEnd();
                 }
-            }
+                foreach (var checkBox in _countryCheckBoxes)
+                {
+                    if (checkBox.Checked)
+                    {
+                        if (checkBox.Name == "pkCheckBox")
+                        {
+                            Log("Please build PK apk manually!");
+                            continue;
+                        }
+                        Log("APK build is in progress..");
+                        if (!BuildAPK( checkBox.Name.Substring(0,2)))
+                        {
+                            Log("Build APK exited with error, process terminated");
+                            // progressBar.Visible = false;
+                            return;
+                        }
+                        Log("APK build completed");
+                        LogEnd();
+                    }
+                }
+                Process.Start("explorer.exe", app.AppSettings["output:directoryandroid"]);
 
+            }
+           
             Log("Process Completed");
-            progressBar.Value = 100;
+            // progressBar.Value = 100;
         }
+
 
         private void PublishProcess(string countryCode)
         {
@@ -139,7 +201,19 @@ namespace VsDeploymentAutomation
         {
             var output = string.Empty;
             var error = string.Empty;
-            var result = _gitCommandManager.Pull("pull origin " + app.AppSettings["git:branch"], out output, out error);
+            //var result = _gitCommandManager.Pull("pull origin " + app.AppSettings["git:branch"], out output, out error);
+            var branch =  gitComboBox.SelectedValue;
+            var result = _gitCommandManager.Pull("pull origin " + branch, out output, out error);
+            Log(result ? output : error);
+            return result;
+        }
+        private bool PullAndroid()
+        {
+            var output = string.Empty;
+            var error = string.Empty;
+            //var result = _gitCommandManager.Pull("pull origin " + app.AppSettings["git:branch"], out output, out error);
+            var branch = gitComboBox.SelectedValue.ToString();
+            var result = _gitCommandManagerAndroid.Pull("pull origin " + branch, out output, out error);
             Log(result ? output : error);
             return result;
         }
@@ -149,6 +223,16 @@ namespace VsDeploymentAutomation
             var output = string.Empty;
             var error = string.Empty;
             var result = _msBuildManager.Build(@"" + app.AppSettings["msbuild:solutionpath"], out output, out error);
+            Log(result ? output : error);
+            return result;
+        }
+        private bool BuildAPK(string entity)
+        {
+            var output = string.Empty;
+            var error = string.Empty;
+            var env = envComboBox.SelectedValue.ToString();
+            //var env = "Prod"; // for debug
+            var result = _droidBuildManager.Build(env, entity, app.AppSettings["git:workingdirectoryandroid"], out output, out error);
             Log(result ? output : error);
             return result;
         }
@@ -175,15 +259,15 @@ namespace VsDeploymentAutomation
 
         private void Log(string message)
         {
-            logTextBox.Text += Environment.NewLine + message;
+            //logTextBox.Text += Environment.NewLine + message;
             if (logCheckBox.Checked) File.AppendAllText(_log, Environment.NewLine + message);
-            progressBar.Value = (progressBar.Value + _step) < 100 ? (progressBar.Value + _step) : 100;
+            //progressBar.Value = (progressBar.Value + _step) < 100 ? (progressBar.Value + _step) : 100;
         }
 
         private void LogEnd()
         {
-            logTextBox.Text += Environment.NewLine + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" 
-                + Environment.NewLine;
+            //logTextBox.Text += Environment.NewLine + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" 
+            //    + Environment.NewLine;
             if (logCheckBox.Checked) File.AppendAllText(_log, Environment.NewLine + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
                 + Environment.NewLine);
         }
@@ -194,7 +278,7 @@ namespace VsDeploymentAutomation
             n += (gitPullCheckBox.Checked ? 1 : 0);
             n += (buildCheckBox.Checked ? 1 : 0);
 
-            foreach(var checkBox in _countryCheckBoxes)
+            foreach (var checkBox in _countryCheckBoxes)
                 n += (checkBox.Checked ? 1 : 0);
 
             return n;
@@ -202,10 +286,30 @@ namespace VsDeploymentAutomation
 
         private void CopyWebConfig(string source, string destination)
         {
-            if(File.Exists(source))
+            if (File.Exists(source))
                 File.Copy(source, destination, true);
         }
 
         #endregion
+
+        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void environmentLabel_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

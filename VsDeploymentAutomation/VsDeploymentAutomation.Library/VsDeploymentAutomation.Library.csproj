@@ -41,8 +41,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Interfaces\IAndroidBuildManager.cs" />
     <Compile Include="Interfaces\IGitCommandManager.cs" />
     <Compile Include="Interfaces\IMsBuildManager.cs" />
+    <Compile Include="Manager\AndroidBuildManager.cs" />
     <Compile Include="Manager\GitCommandManager.cs" />
     <Compile Include="Manager\MsBuildManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
