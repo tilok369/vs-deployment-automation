@@ -66,6 +66,7 @@ namespace VsDeploymentAutomation
 
             _root = Application.StartupPath;
             _log = _root + "\\log_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".log";
+            this.WindowState = FormWindowState.Maximized;
         }
 
         #endregion
@@ -108,7 +109,7 @@ namespace VsDeploymentAutomation
                     if (!Pull())
                     {
                         Log("Git pull exited with error, process terminated");
-                        // progressBar.Visible = false;
+                        progressBar.Visible = false;
                         return;
                     }
                     Log("Git pull completed");
@@ -120,7 +121,7 @@ namespace VsDeploymentAutomation
                     if (!Build())
                     {
                         Log("Build project exited with error, process terminated");
-                        // progressBar.Visible = false;
+                        progressBar.Visible = false;
                         return;
                     }
                     Log("Project build completed");
@@ -150,7 +151,7 @@ namespace VsDeploymentAutomation
                     if (!PullAndroid())
                     {
                         Log("Git pull exited with error, process terminated");
-                        // progressBar.Visible = false;
+                        progressBar.Visible = false;
                         return;
                     }
                     Log("Git pull completed");
@@ -169,7 +170,7 @@ namespace VsDeploymentAutomation
                         if (!BuildAPK( checkBox.Name.Substring(0,2)))
                         {
                             Log("Build APK exited with error, process terminated");
-                            // progressBar.Visible = false;
+                            progressBar.Visible = false;
                             return;
                         }
                         Log("APK build completed");
@@ -181,7 +182,7 @@ namespace VsDeploymentAutomation
             }
            
             Log("Process Completed");
-            // progressBar.Value = 100;
+            progressBar.Value = 100;
         }
 
 
@@ -259,15 +260,15 @@ namespace VsDeploymentAutomation
 
         private void Log(string message)
         {
-            //logTextBox.Text += Environment.NewLine + message;
+            logTextBox.Text += Environment.NewLine + message;
             if (logCheckBox.Checked) File.AppendAllText(_log, Environment.NewLine + message);
-            //progressBar.Value = (progressBar.Value + _step) < 100 ? (progressBar.Value + _step) : 100;
+            progressBar.Value = (progressBar.Value + _step) < 100 ? (progressBar.Value + _step) : 100;
         }
 
         private void LogEnd()
         {
-            //logTextBox.Text += Environment.NewLine + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" 
-            //    + Environment.NewLine;
+            logTextBox.Text += Environment.NewLine + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+                + Environment.NewLine;
             if (logCheckBox.Checked) File.AppendAllText(_log, Environment.NewLine + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
                 + Environment.NewLine);
         }
@@ -310,6 +311,11 @@ namespace VsDeploymentAutomation
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
 
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            logTextBox.Width = this.Width - logTextBox.Location.X - 30;
         }
     }
 }
